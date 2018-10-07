@@ -15,10 +15,14 @@
  */
 package com.example.android.pets;
 
+import android.content.ContentValues;
+import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -26,13 +30,20 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.Toast;
 
-import com.example.android.pets.data.PetsContract.petsEntry;
+import com.example.android.pets.data.PetContract.PetEntry;
+import com.example.android.pets.data.PetDbHelper;
 
 /**
  * Allows user to create a new pet or edit an existing one.
  */
 public class EditorActivity extends AppCompatActivity {
+
+    /**
+     * Log Tag
+     */
+    private static final String LOG_TAG = EditorActivity.class.getSimpleName();
 
     /** EditText field to enter the pet's name */
     private EditText mNameEditText;
@@ -88,11 +99,11 @@ public class EditorActivity extends AppCompatActivity {
                 String selection = (String) parent.getItemAtPosition(position);
                 if (!TextUtils.isEmpty(selection)) {
                     if (selection.equals(getString(R.string.gender_male))) {
-                        mGender = petsEntry.GENDER_MALE;
+                        mGender = PetEntry.GENDER_MALE;
                     } else if (selection.equals(getString(R.string.gender_female))) {
-                        mGender = petsEntry.GENDER_FEMALE;
+                        mGender = PetEntry.GENDER_FEMALE;
                     } else {
-                        mGender = petsEntry.GENDER_UNKNOWN;
+                        mGender = PetEntry.GENDER_UNKNOWN;
                     }
                 }
             }
@@ -103,6 +114,47 @@ public class EditorActivity extends AppCompatActivity {
                 mGender = 0; // Unknown
             }
         });
+    }
+
+    /**
+     * Inserts new pet data into the database
+     */
+    private void insertPet() {
+
+        // create a PetDBHelper so we can access the database
+        PetDbHelper mDbHelper = new PetDbHelper(this);
+
+        // Create and/or open a database to read from it
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+
+        // Get pet data from edit text and spinners
+        String nameString = mNameEditText.getText().toString().trim();
+        String breedString = mBreedEditText.getText().toString().trim();
+        String weightString = mWeightEditText.getText().toString().trim();
+        int weight = Integer.parseInt(weightString);
+
+        // Create Content values for a new row in database
+        ContentValues values = new ContentValues();
+
+        // Add in pet data like its name, breed, gender, and weight
+        values.put(PetEntry.COLUMN_PET_NAME, nameString);
+        values.put(PetEntry.COLUMN_PET_BREED, breedString);
+        values.put(PetEntry.COLUMN_PET_GENDER, mGender);
+        values.put(PetEntry.COLUMN_PET_WEIGHT, weight);
+
+        // Insert new pet data row into database, and returning the ID of that row
+        long newRowId = db.insert(PetEntry.TABLE_NAME, null, values);
+
+        // If there was an error saving new row, display an error toast message
+        if (newRowId == -1) {
+            // Toast message as an error message
+            Toast.makeText(this, "Error with saving pet", Toast.LENGTH_SHORT).show();
+
+        } else {
+            // Else if pet was added succesfully, display a success toast message
+            Toast.makeText(this, "Pet saved by Id: " + String.valueOf(newRowId), Toast.LENGTH_SHORT).show();
+        }
+
     }
 
     @Override
@@ -119,7 +171,10 @@ public class EditorActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             // Respond to a click on the "Save" menu option
             case R.id.action_save:
-                // Do nothing for now
+                // call insertPet to save new pet
+                insertPet();
+                // Exit activity
+                finish();
                 return true;
             // Respond to a click on the "Delete" menu option
             case R.id.action_delete:
