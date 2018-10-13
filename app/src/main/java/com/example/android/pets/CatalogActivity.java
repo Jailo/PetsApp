@@ -20,6 +20,7 @@ import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -30,8 +31,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
+import com.example.android.pets.data.PetContract;
 import com.example.android.pets.data.PetDbHelper;
 import com.example.android.pets.data.PetContract.PetEntry;
+import com.example.android.pets.data.PetProvider;
 
 /**
  * Displays list of pets that were entered and stored in the app.
@@ -39,8 +42,6 @@ import com.example.android.pets.data.PetContract.PetEntry;
 public class CatalogActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = CatalogActivity.class.getSimpleName();
-
-    private PetDbHelper mDbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,11 +58,6 @@ public class CatalogActivity extends AppCompatActivity {
             }
         });
 
-        //Instantiate private petDbHelper
-        // To access our database, we instantiate our subclass of SQLiteOpenHelper
-        // and pass the context, which is the current activity.
-        mDbHelper = new PetDbHelper(this);
-
     }
 
     @Override
@@ -76,9 +72,6 @@ public class CatalogActivity extends AppCompatActivity {
      */
     private void displayDatabaseInfo() {
 
-        // Create and/or open a database to read from it
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
-
         String[] projection = {
                 PetEntry._ID,
                 PetEntry.COLUMN_PET_NAME,
@@ -87,16 +80,14 @@ public class CatalogActivity extends AppCompatActivity {
                 PetEntry.COLUMN_PET_WEIGHT
         };
 
-
-        Cursor cursor = db.query(
-                PetEntry.TABLE_NAME,
-                projection,
-                null,
-                null,
-                null,
-                null,
-                null
+        Cursor cursor = getContentResolver().query(
+                PetEntry.CONTENT_URI, // the content URI
+                projection, //Which columns we want returned
+                null, //Selections criteria
+                null, //selection criteria
+                null //The sort order of returned data
         );
+
 
         try {
             // Display the number of rows in the Cursor (which reflects the number of rows in the
@@ -176,9 +167,6 @@ public class CatalogActivity extends AppCompatActivity {
 
         Log.v(LOG_TAG, "One dummy pet for one dummy fool");
 
-        // Create and/or open a database to read from it
-        SQLiteDatabase db = mDbHelper.getWritableDatabase();
-
         // Create Content values for a new row in database
         ContentValues values = new ContentValues();
 
@@ -188,10 +176,10 @@ public class CatalogActivity extends AppCompatActivity {
         values.put(PetEntry.COLUMN_PET_GENDER, PetEntry.GENDER_MALE);
         values.put(PetEntry.COLUMN_PET_WEIGHT, 7);
 
-        // Insert pet data into database
-        long newRowId = db.insert(PetEntry.TABLE_NAME, null, values);
-
-        Log.v(LOG_TAG, String.valueOf(newRowId));
+        // Insert new "dummy" placeholder pet into the database
+        // By calling ContentResolver Insert method, which will then call Pet Providers insertPet method
+        // Receive the new content URI that will allow us to access Toto's data in the future.
+        Uri newUri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
     }
 
 }
