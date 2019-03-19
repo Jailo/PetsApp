@@ -15,12 +15,18 @@
  */
 package com.example.android.pets;
 
+import android.app.LoaderManager;
 import android.content.ContentValues;
+import android.content.CursorLoader;
+import android.content.Intent;
+import android.content.Loader;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -35,12 +41,17 @@ import com.example.android.pets.data.PetContract.PetEntry;
 /**
  * Allows user to create a new pet or edit an existing one.
  */
-public class EditorActivity extends AppCompatActivity {
+public class EditorActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     /**
      * Log Tag
      */
     private static final String LOG_TAG = EditorActivity.class.getSimpleName();
+
+    /**
+     * Existing loader ID
+     */
+    private static final int EXISTING_PET_LOADER = 0;
 
     /** EditText field to enter the pet's name */
     private EditText mNameEditText;
@@ -58,12 +69,37 @@ public class EditorActivity extends AppCompatActivity {
      * Gender of the pet. The possible values are:
      * 0 for unknown gender, 1 for male, 2 for female.
      */
-    private int mGender = 0;
+    private int mGender = PetEntry.GENDER_UNKNOWN;
+
+    /**
+     * Uri for the current pet, null if creating a new pet
+     */
+    private Uri mCurrentPetUri;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_editor);
+
+        Intent intent = getIntent();
+
+        mCurrentPetUri = intent.getData();
+
+        // If the intents data is null, then we must add a new pet into the database
+        if (mCurrentPetUri == null) {
+            // set title to "Add a Pet"
+            setTitle(R.string.editor_activity_title_add_a_pet);
+        } else {
+            // If data is NOT null, then we are editing an existing pet
+            // Set the activity's title "Edit Pet"
+            setTitle(R.string.editor_activity_title_edit_pet);
+
+            // Initialize a loader to read the pet data from the database
+            // and display the current values in the editor
+            getLoaderManager().initLoader(EXISTING_PET_LOADER,null, this);
+
+        }
 
         // Find all relevant views that we will need to read user input from
         mNameEditText = (EditText) findViewById(R.id.edit_pet_name);
@@ -72,6 +108,7 @@ public class EditorActivity extends AppCompatActivity {
         mGenderSpinner = (Spinner) findViewById(R.id.spinner_gender);
 
         setupSpinner();
+
     }
 
     /**
@@ -116,7 +153,7 @@ public class EditorActivity extends AppCompatActivity {
     /**
      * Inserts new pet data into the database
      */
-    private void insertPet() {
+    private void savePet() {
 
         // Get pet data from edit text and spinners
         String nameString = mNameEditText.getText().toString().trim();
@@ -145,10 +182,10 @@ public class EditorActivity extends AppCompatActivity {
         } else {
             // Else if new pet was added succesfully, display a success toast message
             Toast.makeText(this, R.string.editor_insert_pet_successful, Toast.LENGTH_SHORT).show();
-        }
-
+            }
 
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -164,8 +201,8 @@ public class EditorActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             // Respond to a click on the "Save" menu option
             case R.id.action_save:
-                // call insertPet to save new pet
-                insertPet();
+                // call savePet to save new pet
+                savePet();
                 // Exit activity
                 finish();
                 return true;
@@ -180,5 +217,94 @@ public class EditorActivity extends AppCompatActivity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+
+        // Projection string array for reading from database only from colums we care about
+        String[] projection = {
+                PetEntry._ID,
+                PetEntry.COLUMN_PET_NAME,
+                PetEntry.COLUMN_PET_BREED,
+                PetEntry.COLUMN_PET_GENDER,
+                PetEntry.COLUMN_PET_WEIGHT
+        };
+
+
+        // This loader will execute the ContentProvider's query method on a background thread
+        return new CursorLoader(
+                this,
+                mCurrentPetUri,
+                projection,
+                null,
+                null,
+                null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
+
+        // Bail early if curser is null, or has less than 1 row in database
+        if (cursor == null || cursor.getCount() < 1) {
+            return;
+        }
+
+        // Move cursor to the first row, and read from it
+        //this should be the only row in the cursor
+        if (cursor.moveToFirst()) {
+
+            // Find the index for each column in the database
+            int nameColumnIndex = cursor.getColumnIndex(PetEntry.COLUMN_PET_NAME);
+            int breedColumnIndex = cursor.getColumnIndex(PetEntry.COLUMN_PET_BREED);
+            int genderColumnIndex = cursor.getColumnIndex(PetEntry.COLUMN_PET_GENDER);
+            int weightColumnIndex = cursor.getColumnIndex(PetEntry.COLUMN_PET_WEIGHT);
+
+            // Get the values for the current pet from the database columns
+            String currentPetName = cursor.getString(nameColumnIndex);
+            String currentPetBreed = cursor.getString(breedColumnIndex);
+            int currentPetGender = cursor.getInt(genderColumnIndex);
+            int currentPetWeight = cursor.getInt(weightColumnIndex);
+
+            // Update the editor text fields with the current pet's data
+            mNameEditText.setText(currentPetName);
+            mBreedEditText.setText(currentPetBreed);
+            mWeightEditText.setText(Integer.toString(currentPetWeight));
+
+
+            // Check whether the pet gender is male, female, or unknown
+            // and set it to the gender spinner
+            switch (currentPetGender) {
+                case PetEntry.GENDER_MALE:
+                    mGenderSpinner.setSelection(PetEntry.GENDER_MALE);
+                    mGender = 1;
+                    break;
+
+                case PetEntry.GENDER_FEMALE:
+                    mGenderSpinner.setSelection(PetEntry.GENDER_FEMALE);
+                    mGender = 2;
+                    break;
+
+                default:
+                    mGenderSpinner.setSelection(PetEntry.GENDER_UNKNOWN);
+                    mGender = 0;
+                    break;
+            }
+
+            // set global Gender variable to pet gender so the current pet's gender will be saved
+            mGender = currentPetGender;
+
+        }
+
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+
+        // Remove everything from the input fields
+        mNameEditText.setText("");
+        mBreedEditText.setText("");
+        mWeightEditText.setText("");
+        mGenderSpinner.setSelection(0); // Set gender to Unknown
     }
 }
