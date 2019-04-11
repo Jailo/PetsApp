@@ -170,19 +170,46 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         values.put(PetEntry.COLUMN_PET_GENDER, mGender);
         values.put(PetEntry.COLUMN_PET_WEIGHT, weight);
 
-        // Insert new pet into the database
-        // By calling ContentResolver Insert method, which will then call PetProvider's insertPet method
-        Uri newUri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
+        //Create a brand new pet if the current pet uri is null
+        if (mCurrentPetUri == null) {
+            Log.i(LOG_TAG, "Creating new pet");
 
-        // If there was an error saving new row, display an error toast message
-        if (newUri == null) {
-            // Toast message as an error message
-            Toast.makeText(this, R.string.editor_insert_pet_unsuccessful, Toast.LENGTH_SHORT).show();
+            // Insert new pet into the database
+            // By calling ContentResolver Insert method, which will then call PetProvider's insertPet method
+            Uri newUri = getContentResolver().insert(PetEntry.CONTENT_URI, values);
+
+            // If there was an error saving new row, display an error toast message
+            if (newUri == null) {
+                // Toast message as an error message
+                Toast.makeText(this, R.string.editor_insert_pet_unsuccessful, Toast.LENGTH_SHORT).show();
+
+            } else {
+                // Else if new pet was added succesfully, display a success toast message
+                Toast.makeText(this, R.string.editor_insert_pet_successful, Toast.LENGTH_SHORT).show();
+            }
 
         } else {
-            // Else if new pet was added succesfully, display a success toast message
-            Toast.makeText(this, R.string.editor_insert_pet_successful, Toast.LENGTH_SHORT).show();
+            // update current pet
+            Log.v(LOG_TAG, "Updating a pet");
+
+            int rowsUpdated = getContentResolver().update(mCurrentPetUri, values, null, null);
+
+            Log.v(LOG_TAG, "Updated rows: " + String.valueOf(rowsUpdated));
+
+            Log.v(LOG_TAG, "mGender is: " + String.valueOf(mGender));
+
+            // If there was an error saving new row, display an error toast message
+            if (rowsUpdated == 0) {
+                // Toast message as an error message
+                Toast.makeText(this, R.string.editor_insert_pet_unsuccessful, Toast.LENGTH_SHORT).show();
+
+            } else {
+                // Else if new pet was added succesfully, display a success toast message
+                Toast.makeText(this, R.string.editor_insert_pet_successful, Toast.LENGTH_SHORT).show();
             }
+
+        }
+
 
     }
 
@@ -269,7 +296,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             // Update the editor text fields with the current pet's data
             mNameEditText.setText(currentPetName);
             mBreedEditText.setText(currentPetBreed);
-            mWeightEditText.setText(Integer.toString(currentPetWeight));
+            mWeightEditText.setText(String.valueOf(currentPetWeight));
 
 
             // Check whether the pet gender is male, female, or unknown

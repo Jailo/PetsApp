@@ -1,20 +1,14 @@
 package com.example.android.pets.data;
 
 import android.content.ContentProvider;
-import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.test.PerformanceTestCase;
 import android.util.Log;
-import android.widget.Toast;
 
-import com.example.android.pets.R;
 import com.example.android.pets.data.PetContract.PetEntry;
 
 
@@ -222,7 +216,7 @@ public class PetProvider extends ContentProvider {
         // Check that gender is not null and is a valid gender
         if (values.containsKey(PetEntry.COLUMN_PET_GENDER)) {
             Integer gender = values.getAsInteger(PetEntry.COLUMN_PET_GENDER);
-            if (gender != null || !PetEntry.isValidGender(gender)) {
+            if (gender == null || !PetEntry.isValidGender(gender)) {
                 throw new IllegalArgumentException("Pet requires a gender");
             }
         }
