@@ -159,7 +159,18 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         String nameString = mNameEditText.getText().toString().trim();
         String breedString = mBreedEditText.getText().toString().trim();
         String weightString = mWeightEditText.getText().toString().trim();
-        int weight = Integer.parseInt(weightString);
+        int weight = 0;
+        // If the weight text field is NOT empty, update the weight integer for the pet
+        if (!TextUtils.isEmpty(weightString)) {
+            weight = Integer.parseInt(weightString);
+        }
+
+        // If the text fields are empty just finish activity instead of saving an incomplete pet
+        if (mCurrentPetUri == null && TextUtils.isEmpty(mNameEditText.getText())
+                && TextUtils.isEmpty(mBreedEditText.getText())
+                && TextUtils.isEmpty(mWeightEditText.getText()) && mGender == PetEntry.GENDER_UNKNOWN) {
+            return;
+        }
 
         // Create Content values for a new row in database
         ContentValues values = new ContentValues();
@@ -172,6 +183,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
         //Create a brand new pet if the current pet uri is null
         if (mCurrentPetUri == null) {
+
             Log.i(LOG_TAG, "Creating new pet");
 
             // Insert new pet into the database
@@ -228,11 +240,12 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         switch (item.getItemId()) {
             // Respond to a click on the "Save" menu option
             case R.id.action_save:
-                // call savePet to save new pet
+                // call savePet to save new pet and exit the activity
                 savePet();
-                // Exit activity
                 finish();
+
                 return true;
+
             // Respond to a click on the "Delete" menu option
             case R.id.action_delete:
                 // Do nothing for now
