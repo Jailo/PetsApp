@@ -79,4 +79,14 @@
 
     <!-- Subtitle text for the empty view that prompts the user to add a pet [CHAR LIMIT=50] -->
     <string name="empty_view_subtitle_text">Get started by adding a pet</string>
+
+    <!-- message for when the user is able to leave page before saving a pet [CHAR LIMIT NONE] -->
+    <string name="unsaved_changes_dialog_msg">Discard your changes and quit editing?</string>
+
+    <!-- Discard label for when the user does not want to save a pet -->
+    <string name="discard">Discard</string>
+
+    <!-- Keep editing label for when user wants to continue to edit and save a pet-->
+    <string name="keep_editing">Keep Editing</string>
+
 </resources>
