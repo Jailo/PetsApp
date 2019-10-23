@@ -31,6 +31,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.example.android.pets.data.PetCursorAdapter;
 import com.example.android.pets.data.PetContract.PetEntry;
@@ -115,7 +116,18 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
                 return true;
             // Respond to a click on the "Delete all entries" menu option
             case R.id.action_delete_all_entries:
-                // Do nothing for now
+
+                // Delete all pets in database
+                int rowsDeleted = getContentResolver().delete(PetEntry.CONTENT_URI, null, null);
+
+                //If no pets have been deleted, show an error message
+                if (rowsDeleted == 0) {
+                    Toast.makeText(this, getString(R.string.delete_all_pets_failed), Toast.LENGTH_SHORT).show();
+                } else {
+                    // else show a message saying deleting all pets has been successful
+                    Toast.makeText(this, getString(R.string._delete_all_pets_successful), Toast.LENGTH_SHORT).show();
+                }
+
                 return true;
         }
 
